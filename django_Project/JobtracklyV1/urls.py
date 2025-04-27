@@ -20,7 +20,7 @@ from .views import FrontendAppView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/user/', include('User.urls')),
+    path('user/', include('User.urls')),
     path('', FrontendAppView.as_view(), name='frontend'),
 
 ]
