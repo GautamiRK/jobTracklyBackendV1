@@ -8,8 +8,12 @@ from django.contrib.auth import authenticate, login, logout
 from rest_framework.permissions import AllowAny
 from .models import JobApplication, User
 
+
 class UserRegistrationView(APIView):
-    def get(self, request):
+    authentication_classes = []  # Disable SessionAuthentication
+    permission_classes = [AllowAny]  # Allow any user to access this view
+
+    def post(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
@@ -24,9 +28,10 @@ class UserRegistrationView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class LoginView(APIView):
-    permission_classes = []
+    authentication_classes = []  # Disable SessionAuthentication
+    permission_classes = [AllowAny]
     
-    def get(self, request):
+    def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')
         
@@ -67,9 +72,10 @@ class LogoutView(APIView):
         }, status=status.HTTP_200_OK)
 
 class CreateJobApplicationView(APIView):
-    permission_classes = [IsAuthenticated]
+    authentication_classes = []  # Disable SessionAuthentication
+    permission_classes = [AllowAny]
 
-    def get(self, request):
+    def post(self, request):
         """
         Create a new job application for the authenticated user
         """
@@ -87,9 +93,10 @@ class CreateJobApplicationView(APIView):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 class GetUserApplicationsView(APIView):
-    permission_classes = [IsAuthenticated]
+    authentication_classes = []  # Disable SessionAuthentication
+    permission_classes = [AllowAny]
 
-    def get(self, request):
+    def post(self, request):
         """
         Get all job applications for the authenticated user
         """
