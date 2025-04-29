@@ -19,11 +19,6 @@ class UserRegistrationView(APIView):
             user = serializer.save()
             return Response({
                 'message': 'User registered successfully',
-                'user': {
-                    'id': str(user.id),
-                    'email': user.email,
-                    'username': user.username
-                }
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -58,8 +53,6 @@ class LoginView(APIView):
         return Response({
             'message': 'Login successful',
             'user': {
-                'id': str(user.id),
-                'email': user.email,
                 'username': user.username
             }
         }, status=status.HTTP_200_OK)
@@ -77,15 +70,48 @@ class CreateJobApplicationView(APIView):
 
     def post(self, request):
         """
-        Create a new job application for the authenticated user
+        Create or update a job application for the user
         """
-        print('Request data:', request.data)
+        application_id = request.data.get('id')
+        user_id = request.data.get('user_id')
+
+        if not user_id:
+            return Response({
+                'error': 'User ID is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({
+                'error': 'User not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # If application_id is provided, try to update existing application
+        if application_id:
+            try:
+                application = JobApplication.objects.get(id=application_id, user=user)
+                serializer = JobApplicationSerializer(application, data=request.data, partial=True)
+                if serializer.is_valid():
+                    serializer.save()
+                    return Response({
+                        'message': 'Job application updated successfully',
+                    }, status=status.HTTP_200_OK)
+                return Response({
+                    'error': 'Invalid data',
+                    'details': serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+            except JobApplication.DoesNotExist:
+                return Response({
+                    'error': 'Job application not found'
+                }, status=status.HTTP_404_NOT_FOUND)
+
+        # If no application_id, create new application
         serializer = JobApplicationSerializer(data=request.data)
         if serializer.is_valid():
-            application = serializer.save(user=request.user)
+            application = serializer.save(user=user)
             return Response({
                 'message': 'Job application created successfully',
-                'application': serializer.data
             }, status=status.HTTP_201_CREATED)
         return Response({
             'error': 'Invalid data',
@@ -100,8 +126,21 @@ class GetUserApplicationsView(APIView):
         """
         Get all job applications for the authenticated user
         """
+        user_id = request.data.get('user_id')
+        if not user_id:
+            return Response({
+                'error': 'User ID is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            applications = JobApplication.objects.filter(user=request.user)
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({
+                'error': 'User not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            applications = JobApplication.objects.filter(user=user)
             serializer = JobApplicationSerializer(applications, many=True)
             return Response({
                 'message': 'Applications retrieved successfully',
